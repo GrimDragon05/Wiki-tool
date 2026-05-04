@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curse of Aros — Wiki Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0c18;
+  --panel: #13131f;
+  --panel2: #0f0f1c;
+  --border: #252540;
+  --gold: #c9a84c;
+  --gold-light: #e8c96e;
+  --gold-dim: #6a5220;
+  --text: #cccce0;
+  --text-dim: #7070a0;
+  --red: #e05555;
+  --green: #55b055;
+  --code-bg: #090912;
+  --r: 6px;
+  --header-h: 56px;
+  --tabbar-h: 40px;
+  --mob-toggle-h: 44px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── BASE ── */
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-size: 13.5px;
+  /* NO overflow:hidden — let mobile scroll naturally */
+}
+
+/* ── HEADER ── */
+.header {
+  background: linear-gradient(135deg, #0a0a18 0%, #161028 60%, #0a0a18 100%);
+  border-bottom: 1px solid var(--gold-dim);
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 12px;
+  height: var(--header-h);
+  box-shadow: 0 4px 30px rgba(0,0,0,0.6);
+  position: sticky; top: 0; z-index: 100;
+}
+.header-icon { font-size: 22px; filter: drop-shadow(0 0 8px rgba(201,168,76,0.5)); }
+.header h1 { font-family: 'Cinzel', serif; color: var(--gold); font-size: 16px; letter-spacing: 3px; }
+.header .sub { color: var(--text-dim); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+
+/* ── PAGE TABS (Item / Monster) ── */
+.tab-bar {
+  display: flex;
+  padding: 0 20px;
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
+  height: var(--tabbar-h);
+  align-items: stretch;
+  position: sticky;
+  top: var(--header-h);
+  z-index: 99;
+}
+.tab {
+  padding: 0 20px;
+  border: none; background: transparent;
+  color: var(--text-dim); cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 11.5px; letter-spacing: 1.5px;
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+  margin-right: 4px;
+}
+.tab:hover { color: var(--gold-light); }
+.tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ── MOBILE PANEL TOGGLE (only visible on mobile) ── */
+.mob-toggle {
+  display: none; /* hidden on desktop */
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  height: var(--mob-toggle-h);
+  position: sticky;
+  top: calc(var(--header-h) + var(--tabbar-h));
+  z-index: 98;
+}
+.mob-toggle-inner {
+  display: flex;
+  height: 100%;
+}
+.mob-panel-btn {
+  flex: 1;
+  border: none; background: transparent;
+  color: var(--text-dim); cursor: pointer;
+  font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 600;
+  border-bottom: 2px solid transparent; transition: all 0.2s;
+}
+.mob-panel-btn.active { color: var(--gold); border-bottom-color: var(--gold); background: rgba(201,168,76,0.05); }
+
+/* ── LAYOUT ── */
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  /* Desktop: fill remaining viewport height */
+  height: calc(100vh - var(--header-h) - var(--tabbar-h));
+  overflow: hidden;
+}
+
+/* ── FORM PANEL ── */
+.form-panel {
+  overflow-y: auto;
+  padding: 18px 20px 60px;
+  border-right: 1px solid var(--border);
+}
+
+/* ── OUTPUT PANEL ── */
+.output-panel {
+  display: flex; flex-direction: column;
+  background: var(--code-bg);
+  overflow: hidden;
+}
+.output-header {
+  padding: 10px 16px;
+  background: #0f0f1e; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.output-header span { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); letter-spacing: 2px; }
+.output-code {
+  flex: 1; padding: 16px 18px; overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  line-height: 1.75; color: #c9d1d9;
+  white-space: pre-wrap; word-break: break-word;
+}
+
+/* ── FORM SECTIONS ── */
+.fsec { margin-bottom: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.fsec-head { background: var(--panel2); padding: 9px 14px; font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); letter-spacing: 1.8px; border-bottom: 1px solid var(--border); }
+.fsec-body { padding: 14px; }
+
+/* ── FIELDS ── */
+.frow { display: grid; grid-template-columns: 110px 1fr; align-items: start; gap: 8px; margin-bottom: 10px; }
+.frow:last-child { margin-bottom: 0; }
+.frow label { color: var(--text-dim); font-size: 12px; padding-top: 8px; text-align: right; }
+input[type=text], input[type=number], textarea, select {
+  background: var(--panel2); border: 1px solid var(--border); border-radius: 5px;
+  color: var(--text); padding: 8px 10px;
+  font-family: 'Nunito', sans-serif; font-size: 13px;
+  width: 100%; transition: border-color 0.18s;
+  /* prevent iOS zoom on focus (needs ≥16px font or this meta trick) */
+  font-size: max(13px, 16px);
+}
+/* bring it back down visually after preventing zoom */
+input[type=text], input[type=number] { font-size: 13px; }
+textarea { font-size: 13px; }
+select { font-size: 13px; }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--gold-dim); box-shadow: 0 0 0 2px rgba(201,168,76,0.08); }
+textarea { resize: vertical; min-height: 60px; }
+select option { background: #0d0d1a; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border: 1px solid; border-radius: 5px; cursor: pointer;
+  font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 600;
+  transition: all 0.16s; letter-spacing: 0.3px;
+  /* big enough touch target */
+  min-height: 34px;
+}
+.btn-gold  { background: rgba(106,82,32,0.3); color: var(--gold-light); border-color: var(--gold-dim); }
+.btn-gold:hover  { background: var(--gold-dim); color: #fff8e0; }
+.btn-red   { background: rgba(80,20,20,0.5); color: var(--red); border-color: rgba(200,50,50,0.3); padding: 6px 10px; }
+.btn-red:hover   { background: rgba(100,20,20,0.8); }
+.btn-ghost { background: transparent; color: var(--text-dim); border-color: var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--text-dim); }
+.btn-copy  { background: rgba(40,40,60,0.8); color: var(--gold-light); border-color: var(--gold-dim); padding: 7px 18px; font-size: 12px; }
+.btn-copy:hover { background: var(--gold-dim); color: #fff; }
+.btn-copy.copied { background: rgba(20,60,20,0.8); color: var(--green); border-color: #2a5a2a; }
+.full-btn { width: 100%; justify-content: center; margin-top: 8px; }
+
+/* ── DROP ROWS ── */
+.col-lbl-row { display: flex; gap: 6px; margin-bottom: 3px; padding-right: 42px; }
+.col-lbl-row span { font-size: 10.5px; color: var(--text-dim); padding-left: 2px; }
+.col-lbl-row .cl-name { flex: 1; }
+.col-lbl-row .cl-qty  { width: 64px; flex: none; }
+.col-lbl-row .cl-rar  { width: 108px; flex: none; }
+.col-lbl-row .cl-lvl  { width: 90px; flex: none; }
+
+.drop-row { display: grid; grid-template-columns: 1fr 64px 108px 36px; gap: 5px; margin-bottom: 6px; align-items: center; }
+.alch-row { display: grid; grid-template-columns: 1fr 90px 64px 36px; gap: 5px; margin-bottom: 6px; align-items: center; }
+
+/* ── DYNAMIC ITEMS ── */
+.dyn-item { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+.dyn-item input { flex: 1; }
+
+/* ── SECTION CARDS ── */
+.sec-card { background: var(--panel2); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 10px; overflow: hidden; }
+.sec-card-head { background: #0a0a14; padding: 8px 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sec-card-head .sec-title-inp { flex: 1; min-width: 100px; background: transparent; border: none; font-size: 13px; color: var(--text); padding: 4px 0; }
+.sec-card-head .sec-title-inp:focus { outline: none; }
+.sec-card-head select { width: auto; padding: 5px 8px; font-size: 12px; }
+.sec-card-body { padding: 12px; }
+
+.table-headers { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.table-headers .hdr-item { display: flex; gap: 4px; align-items: center; }
+.table-headers input { width: 90px; font-size: 12px; padding: 5px 7px; }
+.tbl-row-line { display: flex; gap: 5px; margin-bottom: 6px; align-items: center; }
+.tbl-row-line input { flex: 1; min-width: 50px; font-size: 12px; padding: 5px 7px; }
+
+.list-item-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+.list-item-row input { flex: 1; }
+.link-row { display: flex; gap: 7px; margin-bottom: 7px; align-items: center; }
+.link-row input { flex: 1; }
+
+
+.import-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.import-actions .btn { flex: 0 0 auto; }
+.field-guide ul { margin: 6px 0 0 18px; line-height: 1.55; }
+.field-guide li { margin-bottom: 2px; }
+
+/* ── MISC ── */
+.hint { color: var(--text-dim); font-size: 11.5px; margin-bottom: 10px; line-height: 1.5; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+/* ════════════════════════════════════════════════
+   MOBILE  (≤ 768 px)
+   ════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  :root { --header-h: 52px; --tabbar-h: 40px; --mob-toggle-h: 42px; }
+
+  body { overflow-y: auto; }
+
+  .header { padding: 8px 14px; gap: 10px; }
+  .header h1 { font-size: 14px; letter-spacing: 2px; }
+  .header .sub { font-size: 9px; }
+  .header-icon { font-size: 20px; }
+
+  .tab { padding: 0 14px; font-size: 10.5px; letter-spacing: 1px; }
+
+  /* Show mobile toggle bar */
+  .mob-toggle { display: block; }
+
+  /* Layout: stacked, natural height (no overflow:hidden) */
+  .layout {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* Each panel takes full width; the JS toggles .mob-hidden */
+  .form-panel, .output-panel {
+    width: 100%;
+    border-right: none;
+  }
+
+  /* Form panel: natural scroll */
+  .form-panel {
+    overflow-y: visible;
+    padding: 14px 12px 40px;
+  }
+
+  /* Output panel: fixed height so code is visible without full-page scroll */
+  .output-panel {
+    height: 70vh;
+    position: sticky;
+    bottom: 0;
+  }
+
+  /* Hidden state for panel toggle */
+  .mob-hidden { display: none !important; }
+
+  /* Fields: stack label above input on narrow screens */
+  .frow { grid-template-columns: 1fr; gap: 4px; }
+  .frow label { text-align: left; padding-top: 0; font-size: 11.5px; font-weight: 600; color: var(--gold-dim); }
+
+  /* Drop rows: 2 rows on mobile */
+  .col-lbl-row { display: none; } /* hide desktop column headers */
+  .drop-row {
+    grid-template-columns: 1fr 36px;
+    grid-template-rows: auto auto;
+    gap: 5px;
+  }
+  .drop-row input:first-child { grid-column: 1; }
+  .drop-row select            { grid-column: 1; grid-row: 2; }
+  .drop-row input:nth-child(2){ grid-column: 2; grid-row: 2; width: 100%; }
+  .drop-row .btn-red          { grid-column: 2; grid-row: 1; }
+
+  /* Alch rows: same treatment */
+  .alch-row {
+    grid-template-columns: 1fr 36px;
+    grid-template-rows: auto auto;
+    gap: 5px;
+  }
+  .alch-row input:first-child { grid-column: 1; }
+  .alch-row input:nth-child(2){ grid-column: 1; grid-row: 2; }
+  .alch-row input:nth-child(3){ grid-column: 2; grid-row: 2; width: 100%; }
+  .alch-row .btn-red          { grid-column: 2; grid-row: 1; }
+
+  /* Section card header: wrap cleanly */
+  .sec-card-head { gap: 5px; }
+  .sec-card-head select { font-size: 12px; padding: 5px 6px; }
+
+  /* Table row inputs: allow horizontal scroll */
+  .tbl-row-line { overflow-x: auto; }
+
+  /* Output code: slightly smaller font */
+  .output-code { font-size: 11px; padding: 12px 14px; }
+  .output-header { padding: 8px 12px; }
+  .output-header span { font-size: 10px; letter-spacing: 1px; }
+
+  .btn { min-height: 38px; font-size: 13px; } /* bigger touch targets */
+  .btn-red { min-height: 34px; }
+  .full-btn { padding: 10px 14px; }
+}
+
+/* very small phones */
+@media (max-width: 380px) {
+  .tab { padding: 0 10px; font-size: 10px; }
+  .header h1 { font-size: 13px; letter-spacing: 1.5px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <div class="header-icon">⚔</div>
+  <div>
+    <div class="header h1">CURSE OF AROS</div>
+    <div class="sub">Wiki Template Generator</div>
+  </div>
+</div>
+
+<!-- ═══ PAGE TYPE TABS ═══ -->
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('item')">📦 Item Page</button>
+  <button class="tab" onclick="switchTab('equipment')">🛡 Equipment Page</button>
+  <button class="tab" onclick="switchTab('monster')">👹 Monster Page</button>
+</div>
+
+<!-- ═══ MOBILE PANEL TOGGLE (hidden on desktop) ═══ -->
+<div class="mob-toggle">
+  <div class="mob-toggle-inner">
+    <button class="mob-panel-btn active" id="mob-form-btn" onclick="showMobPanel('form')">📝 Fill Form</button>
+    <button class="mob-panel-btn"        id="mob-out-btn"  onclick="showMobPanel('output')">📋 View Output</button>
+  </div>
+</div>
+
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div class="layout">
+  <div class="form-panel" id="form-panel"></div>
+
+  <div class="output-panel" id="output-panel">
+    <div class="output-header">
+      <span>📋 WIKI CODE OUTPUT</span>
+      <button class="btn btn-copy" id="copy-btn" onclick="copyCode()">Copy</button>
+    </div>
+    <div class="output-code" id="output-code"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let currentTab = 'item';
+
+const itemState = {
+  name: '', image: '', description: '', obtained: '', buy: '', sell: '',
+  pageDescription: '', categories: [], sections: [], linkWords: []
+};
+
+const equipmentState = {
+  name: '', image: '', description: '', obtained: '', level: '', attack: '',
+  strength: '', defence: '', hp: '', merchant_price: '', tradeable: '',
+  droppedBy: [], craftedRows: [], pageDescription: '', categories: [],
+  sections: [], linkWords: []
+};
+
+const monsterState = {
+  name: '', image: '', level: '', hp: '', xp: '', gold: '', speed: '',
+  damage: '', respawn: '', found: '', date: '', pageDescription: '',
+  drops: [], alchemyDrops: [], tertiaryDrops: [], sections: [], categories: [],
+  linkWords: []
+};
+
+function getState() {
+  if (currentTab === 'equipment') return equipmentState;
+  if (currentTab === 'monster') return monsterState;
+  return itemState;
+}
+
+// ═══════════════════════════════════════════════
+//  MOBILE PANEL TOGGLE
+// ═══════════════════════════════════════════════
+let mobPanel = 'form'; // 'form' | 'output'
+
+function showMobPanel(which) {
+  if (window.innerWidth > 768) return;
+  mobPanel = which;
+  const fp = document.getElementById('form-panel');
+  const op = document.getElementById('output-panel');
+  const fbtn = document.getElementById('mob-form-btn');
+  const obtn = document.getElementById('mob-out-btn');
+  if (which === 'form') {
+    fp.classList.remove('mob-hidden');
+    op.classList.add('mob-hidden');
+    fbtn.classList.add('active');
+    obtn.classList.remove('active');
+  } else {
+    fp.classList.add('mob-hidden');
+    op.classList.remove('mob-hidden');
+    obtn.classList.add('active');
+    fbtn.classList.remove('active');
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 768) {
+    document.getElementById('form-panel').classList.remove('mob-hidden');
+    document.getElementById('output-panel').classList.remove('mob-hidden');
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  TAB SWITCH
+// ═══════════════════════════════════════════════
+function switchTab(tab) {
+  currentTab = tab;
+  const order = ['item', 'equipment', 'monster'];
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', order[i] === tab);
+  });
+  renderForm();
+  generateOutput();
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function e(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function escRe(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function frow(lbl, inp) {
+  return `<div class="frow"><label>${lbl}</label><div>${inp}</div></div>`;
+}
+
+function fsec(title, body) {
+  return `<div class="fsec"><div class="fsec-head">${title}</div><div class="fsec-body">${body}</div></div>`;
+}
+
+function inp(id, val, ph, type='text') {
+  return `<input type="${type}" id="${id}" value="${e(val)}" placeholder="${e(ph)}">`;
+}
+
+function ta(id, val, ph) {
+  return `<textarea id="${id}" placeholder="${e(ph)}">${e(val)}</textarea>`;
+}
+
+function cleanWikiText(text) {
+  return String(text || '')
+    .replace(/\r/g, '')
+    .replace(/\[\[(?:[^|\]]+\|)?([^\]]+)\]\]/g, '$1')
+    .replace(/\{\{Item\|([^}]+)\}\}/gi, '$1')
+    .replace(/\{\{#invoke:[^|]+\|show\|?([^}]*)\}\}/gi, '$1')
+    .replace(/&nbsp;/gi, ' ')
+    .trim();
+}
+
+function normalizeKey(key) {
+  return String(key || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_');
+}
+
+function parseTemplateParams(code, templateName) {
+  const re = new RegExp(`\\{\\{#invoke:\\s*${escRe(templateName)}\\|show([\\s\\S]*?)\\}\\}`, 'i');
+  const m = code.match(re);
+  if (!m) return {};
+  const params = {};
+  m[1].split('\n').forEach(line => {
+    const mm = line.match(/^\s*\|\s*([^=]+?)\s*=\s*(.*?)\s*$/);
+    if (mm) params[normalizeKey(mm[1])] = mm[2].trim();
+  });
+  return params;
+}
+
+function extractSection(code, heading) {
+  const re = new RegExp(
+    `={2,3}\\s*${escRe(heading)}\\s*={2,3}\\s*([\\s\\S]*?)(?=\\n={2,3}\\s*[^=].*?\\s*={2,3}\\s*|\\n\\[\\[Category:|$)`,
+    'i'
+  );
+  const m = code.match(re);
+  return m ? m[1].trim() : '';
+}
+
+function detectTabFromCode(code) {
+  if (/\{\{#invoke:\s*MonsterBox\|show/i.test(code)) return 'monster';
+  if (/merchant_price|tradeable|==\s*Crafted with\s*==|==\s*Dropped by\s*==/i.test(code)) return 'equipment';
+  if (/\{\{#invoke:\s*ItemBox\|show/i.test(code)) return 'item';
+  return currentTab;
+}
+
+function fillCategoriesFromCode(code) {
+  return [...code.matchAll(/\[\[Category:([^\]]+)\]\]/gi)].map(m => m[1].trim()).filter(Boolean);
+}
+
+function parseBulletList(sectionText) {
+  return sectionText.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.startsWith('*'))
+    .map(line => cleanWikiText(line.replace(/^\*\s*/, '')))
+    .filter(Boolean);
+}
+
+function parseEquipmentDrops(sectionText) {
+  return parseBulletList(sectionText).map(line => {
+    const m = line.match(/^(.*?)(?:\s*\(level\s*(\d+)\))?$/i);
+    return {
+      name: cleanWikiText(m ? m[1] : line),
+      level: m && m[2] ? m[2] : ''
+    };
+  });
+}
+
+function parseCraftedRows(sectionText) {
+  const rows = [];
+  sectionText.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|') || trimmed.startsWith('|}') || trimmed.startsWith('|-') || trimmed.startsWith('|+')) return;
+    const cells = trimmed.replace(/^\|+\s*/, '').split('||').map(c => cleanWikiText(c));
+    if (cells.length >= 2) {
+      rows.push({
+        level: cells[0] || '',
+        equipment: cells[1] || '',
+        bars: cells[2] || '',
+        xp: cells[3] || '',
+        sells: cells[4] || ''
+      });
+    }
+  });
+  return rows;
+}
+
+function parseExistingCode() {
+  const raw = document.getElementById('f-import');
+  const code = raw ? raw.value : '';
+  if (!code.trim()) return;
+
+  const tab = detectTabFromCode(code);
+  currentTab = tab;
+
+  if (tab === 'monster') {
+    const s = monsterState;
+    const p = parseTemplateParams(code, 'MonsterBox');
+    s.name = p.name || '';
+    s.image = p.image || '';
+    s.level = p.level || '';
+    s.hp = p.hp || '';
+    s.xp = p.xp || '';
+    s.gold = p.gold || '';
+    s.speed = p.speed || '';
+    s.damage = p.damage || '';
+    s.respawn = p.respawn || '';
+    s.found = p.found || '';
+    s.date = p.date || '';
+    s.categories = fillCategoriesFromCode(code);
+    s.drops = [];
+    s.alchemyDrops = [];
+    s.tertiaryDrops = [];
+  } else if (tab === 'equipment') {
+    const s = equipmentState;
+    const p = parseTemplateParams(code, 'ItemBox');
+    s.name = p.name || '';
+    s.image = p.image || '';
+    s.description = p.description || '';
+    s.obtained = p.obtained || '';
+    s.level = p.level || '';
+    s.attack = p.attack || '';
+    s.strength = p.strength || '';
+    s.defence = p.defence || '';
+    s.hp = p.hp || p.h_p || '';
+    s.merchant_price = p.merchant_price || '';
+    s.tradeable = p.tradeable || '';
+    s.categories = fillCategoriesFromCode(code);
+    s.droppedBy = parseEquipmentDrops(extractSection(code, 'Dropped by'));
+    s.craftedRows = parseCraftedRows(extractSection(code, 'Crafted with'));
+  } else {
+    const s = itemState;
+    const p = parseTemplateParams(code, 'ItemBox');
+    s.name = p.name || '';
+    s.image = p.image || '';
+    s.description = p.description || '';
+    s.obtained = p.obtained || '';
+    s.buy = p.buy || '';
+    s.sell = p.sell || '';
+    s.categories = fillCategoriesFromCode(code);
+  }
+
+  renderForm();
+  generateOutput();
+}
+
+function clearImportedCode() {
+  const raw = document.getElementById('f-import');
+  if (raw) raw.value = '';
+}
+
+function hdr(n, title) {
+  const eq = '='.repeat(parseInt(n) || 2);
+  return `${eq} ${title} ${eq}`;
+}
+
+function wikiLink(text, words) {
+  if (!words.length) return text;
+  let result = text;
+  const sorted = [...words].filter(w => w.trim()).sort((a, b) => b.length - a.length);
+  for (const w of sorted) {
+    const esc2 = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`(?<!\\[\\[)\\b${esc2}\\b(?!\\]\\])`, 'g'), `[[${w}]]`);
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER FORM
+// ═══════════════════════════════════════════════
+function renderForm() {
+  const panel = document.getElementById('form-panel');
+  panel.innerHTML =
+    currentTab === 'item' ? renderItemForm() :
+    currentTab === 'equipment' ? renderEquipmentForm() :
+    renderMonsterForm();
+  bindBaseFields();
+}
+
+function renderImportSection() {
+  return fsec('🧩 IMPORT EXISTING CODE', `
+    <p class="hint">Paste an existing wiki page here. The parser will pull matching fields into the form.</p>
+    ${ta('f-import', '', 'Paste wiki code here...')}
+    <div class="import-actions">
+      <button class="btn btn-gold" type="button" onclick="parseExistingCode()">Parse pasted code</button>
+      <button class="btn btn-ghost" type="button" onclick="clearImportedCode()">Clear paste box</button>
+    </div>
+  `);
+}
+
+function renderFieldGuide() {
+  if (currentTab === 'item') {
+    return fsec('ℹ️ EDITABLE FIELDS', `
+      <div class="field-guide">
+        <ul>
+          <li>Item Name</li>
+          <li>Image File</li>
+          <li>Description</li>
+          <li>Obtained</li>
+          <li>Buy Price</li>
+          <li>Sell Price</li>
+          <li>Page Description</li>
+          <li>Categories</li>
+          <li>Custom sections and auto-link words</li>
+        </ul>
+      </div>
+    `);
+  }
+  if (currentTab === 'equipment') {
+    return fsec('ℹ️ EDITABLE FIELDS', `
+      <div class="field-guide">
+        <ul>
+          <li>Item Name</li>
+          <li>Image File</li>
+          <li>Description</li>
+          <li>Obtained</li>
+          <li>Level</li>
+          <li>Attack</li>
+          <li>Strength</li>
+          <li>Defence</li>
+          <li>HP</li>
+          <li>Merchant Price</li>
+          <li>Tradeable</li>
+          <li>Dropped by list</li>
+          <li>Crafted with table</li>
+          <li>Categories</li>
+          <li>Custom sections and auto-link words</li>
+        </ul>
+      </div>
+    `);
+  }
+  return fsec('ℹ️ EDITABLE FIELDS', `
+    <div class="field-guide">
+      <ul>
+        <li>Monster Name</li>
+        <li>Image File</li>
+        <li>Level</li>
+        <li>HP</li>
+        <li>XP</li>
+        <li>Gold</li>
+        <li>Speed</li>
+        <li>Damage</li>
+        <li>Respawn</li>
+        <li>Found In</li>
+        <li>Date Added</li>
+        <li>Drop table, alchemy table, tertiary drops</li>
+        <li>Categories</li>
+        <li>Custom sections and auto-link words</li>
+      </ul>
+    </div>
+  `);
+}
+
+function renderItemForm() {
+  const s = itemState;
+  return `
+    ${renderImportSection()}
+    ${fsec('📦 ITEM BOX', `
+      ${frow('Item Name',   inp('f-name',  s.name,  'Health Potion'))}
+      ${frow('Image File',  inp('f-image', s.image, 'Health_potion_m.png'))}
+      ${frow('Description', ta('f-description', s.description, 'A bitter, red liquid. Restores 30 health.'))}
+      ${frow('Obtained',    inp('f-obtained', s.obtained, 'Dropped by almost every monster.'))}
+      ${frow('Buy Price',   inp('f-buy',  s.buy,  '100', 'number'))}
+      ${frow('Sell Price',  inp('f-sell', s.sell, '35',  'number'))}
+    `)}
+    ${fsec('📝 PAGE DESCRIPTION', `
+      ${frow('Body Text', ta('f-pageDescription', s.pageDescription, 'A potion is an item that can be consumed to replenish...'))}
+    `)}
+    ${renderCategoriesSection()}
+    ${renderSectionsSection()}
+    ${renderLinkWordsSection()}
+    ${renderFieldGuide()}
+  `;
+}
+
+function renderEquipmentForm() {
+  const s = equipmentState;
+  return `
+    ${renderImportSection()}
+    ${fsec('🛡 EQUIPMENT BOX', `
+      ${frow('Item Name',      inp('f-name', s.name, 'Mythan Helm'))}
+      ${frow('Image File',     inp('f-image', s.image, 'Mythan_Helm_m.png'))}
+      ${frow('Description',    ta('f-description', s.description, 'A strong, durable helm forged from layers of ancient frozen metal. Lv 50.'))}
+      ${frow('Obtained',       inp('f-obtained', s.obtained, 'Rarely dropped by high level creatures.'))}
+      ${frow('Level',          inp('f-level', s.level, '50', 'number'))}
+      ${frow('Attack',         inp('f-attack', s.attack, '-', 'text'))}
+      ${frow('Strength',       inp('f-strength', s.strength, '-', 'text'))}
+      ${frow('Defence',        inp('f-defence', s.defence, '14', 'number'))}
+      ${frow('HP',             inp('f-hp', s.hp, '5', 'number'))}
+      ${frow('Merchant Price', inp('f-merchant_price', s.merchant_price, '63000', 'number'))}
+      ${frow('Tradeable',      inp('f-tradeable', s.tradeable, 'Yes'))}
+    `)}
+    ${fsec('== DROPPED BY ==', `
+      <div id="equip-drops-list">
+        ${(s.droppedBy || []).map((d, i) => `
+          <div class="dyn-item">
+            <input type="text" value="${e(d.name)}" oninput="updateEquipDrop(${i},'name',this.value)" placeholder="Monster name">
+            <input type="text" value="${e(d.level)}" oninput="updateEquipDrop(${i},'level',this.value)" placeholder="Level">
+            <button class="btn btn-red" onclick="removeEquipDrop(${i})">✕</button>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn btn-gold full-btn" onclick="addEquipDrop()">+ Add Monster Drop</button>
+    `)}
+    ${fsec('== CRAFTED WITH ==', `
+      <div class="hint">Use raw wiki text in the Equipment and Bars fields if you want it copied exactly into the table.</div>
+      <div id="equip-craft-list">
+        ${(s.craftedRows || []).map((r, i) => `
+          <div class="tbl-row-line">
+            <input type="text" value="${e(r.level)}" oninput="updateCraftRow(${i},'level',this.value)" placeholder="Level">
+            <input type="text" value="${e(r.equipment)}" oninput="updateCraftRow(${i},'equipment',this.value)" placeholder="Equipment">
+            <input type="text" value="${e(r.bars)}" oninput="updateCraftRow(${i},'bars',this.value)" placeholder="Bars required">
+            <input type="text" value="${e(r.xp)}" oninput="updateCraftRow(${i},'xp',this.value)" placeholder="XP for forging">
+            <input type="text" value="${e(r.sells)}" oninput="updateCraftRow(${i},'sells',this.value)" placeholder="Sells for">
+            <button class="btn btn-red" onclick="removeCraftRow(${i})">✕</button>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn btn-gold full-btn" onclick="addCraftRow()">+ Add Craft Row</button>
+    `)}
+    ${fsec('📝 PAGE DESCRIPTION', `
+      ${frow('Body Text', ta('f-pageDescription', s.pageDescription, 'A rare piece of armour...'))}
+    `)}
+    ${renderCategoriesSection()}
+    ${renderSectionsSection()}
+    ${renderLinkWordsSection()}
+    ${renderFieldGuide()}
+  `;
+}
+
+function renderMonsterForm() {
+  const s = monsterState;
+  return `
+    ${renderImportSection()}
+    ${fsec('👹 MONSTER BOX', `
+      ${frow('Monster Name', inp('f-name',    s.name,    'Bat'))}
+      ${frow('Image File',   inp('f-image',   s.image,   'Bat_m.gif'))}
+      ${frow('Level',        inp('f-level',   s.level,   '1',  'number'))}
+      ${frow('HP',           inp('f-hp',      s.hp,      '45', 'number'))}
+      ${frow('XP',           inp('f-xp',      s.xp,      '8',  'number'))}
+      ${frow('Gold',         inp('f-gold',    s.gold,    '1',  'number'))}
+      ${frow('Speed',        inp('f-speed',   s.speed,   '2',  'number'))}
+      ${frow('Damage',       inp('f-damage',  s.damage,  '10', 'number'))}
+      ${frow('Respawn',      inp('f-respawn', s.respawn, '2',  'number'))}
+      ${frow('Found In',     inp('f-found',   s.found,   'In Brightleaf'))}
+      ${frow('Date Added',   inp('f-date',    s.date,    '19th November, 2018'))}
+    `)}
+    ${fsec('📝 PAGE DESCRIPTION', `
+      ${frow('Body Text', ta('f-pageDescription', s.pageDescription, 'Found in the Starting town of Brightleaf...'))}
+    `)}
+    ${renderDropsSection('drops', '⚔️ DROP TABLE')}
+    ${renderAlchemySection()}
+    ${renderDropsSection('tertiaryDrops', '🍬 TERTIARY DROPS', 'Extra item roll — rare drop from all near-level monsters.')}
+    ${renderSectionsSection()}
+    ${renderCategoriesSection()}
+    ${renderLinkWordsSection()}
+    ${renderFieldGuide()}
+  `;
+}
+
+// ─── Drop table ───────────────────────────────
+function renderDropsSection(key, title, hint='') {
+  const drops = getState()[key] || [];
+  const rarities = ['Common','Uncommon','Rare','Very Rare','Ultra Rare'];
+  return fsec(title, `
+    ${hint ? `<p class="hint">${hint}</p>` : ''}
+    <div class="col-lbl-row">
+      <span class="cl-name">Item Name</span>
+      <span class="cl-qty">Qty</span>
+      <span class="cl-rar">Rarity</span>
+    </div>
+    <div id="${key}-list">
+      ${drops.map((d,i)=>`
+        <div class="drop-row">
+          <input type="text" value="${e(d.name)}" oninput="updateDrop('${key}',${i},'name',this.value)" placeholder="Item name">
+          <input type="number" value="${e(d.quantity)}" oninput="updateDrop('${key}',${i},'quantity',this.value)" placeholder="1">
+          <select onchange="updateDrop('${key}',${i},'rarity',this.value)">
+            ${rarities.map(r=>`<option value="${r}"${d.rarity===r?' selected':''}>${r}</option>`).join('')}
+          </select>
+          <button class="btn btn-red" onclick="removeDrop('${key}',${i})">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-gold full-btn" onclick="addDrop('${key}')">+ Add Drop</button>
+  `);
+}
+
+// ─── Alchemy ──────────────────────────────────
+function renderAlchemySection() {
+  const drops = monsterState.alchemyDrops || [];
+  return fsec('⚗️ ALCHEMY DROP TABLE', `
+    <p class="hint">Drops after reaching the required Alchemy level.</p>
+    <div class="col-lbl-row">
+      <span class="cl-name">Item Name</span>
+      <span class="cl-lvl">Alch Level</span>
+      <span class="cl-qty">Qty</span>
+    </div>
+    <div id="alchemyDrops-list">
+      ${drops.map((d,i)=>`
+        <div class="alch-row">
+          <input type="text"   value="${e(d.name)}"     oninput="updateAlchemy(${i},'name',this.value)"     placeholder="Item name">
+          <input type="number" value="${e(d.level)}"    oninput="updateAlchemy(${i},'level',this.value)"    placeholder="Level req">
+          <input type="number" value="${e(d.quantity)}" oninput="updateAlchemy(${i},'quantity',this.value)" placeholder="Qty">
+          <button class="btn btn-red" onclick="removeAlchemy(${i})">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-gold full-btn" onclick="addAlchemy()">+ Add Alchemy Drop</button>
+  `);
+}
+
+// ─── Custom sections ──────────────────────────
+function renderSectionsSection() {
+  const sections = getState().sections || [];
+  return fsec('➕ CUSTOM SECTIONS', `
+    <div id="sections-list">
+      ${sections.map((sec,i)=>renderSecCard(sec,i)).join('')}
+    </div>
+    <button class="btn btn-gold full-btn" onclick="addSection()">+ Add Section</button>
+  `);
+}
+
+function renderSecCard(sec,i) {
+  const lvlOpts = ['1','2','3'].map(l=>`<option value="${l}"${(sec.level||'2')===l?' selected':''}>${'='.repeat(parseInt(l))} H${l}</option>`).join('');
+  return `<div class="sec-card">
+    <div class="sec-card-head">
+      <input class="sec-title-inp" type="text" value="${e(sec.title)}" oninput="updateSec(${i},'title',this.value)" placeholder="Section title e.g. Dropped by">
+      <select onchange="updateSec(${i},'type',this.value)">
+        <option value="list" ${sec.type==='list' ?'selected':''}>📋 List</option>
+        <option value="table"${sec.type==='table'?'selected':''}>📊 Table</option>
+        <option value="text" ${sec.type==='text' ?'selected':''}>📄 Text</option>
+      </select>
+      <select onchange="updateSec(${i},'level',this.value)" style="width:72px">${lvlOpts}</select>
+      <button class="btn btn-red" onclick="removeSec(${i})" style="flex-shrink:0">✕</button>
+    </div>
+    <div class="sec-card-body">
+      ${sec.type==='list'  ? renderListEditor(sec,i)  : ''}
+      ${sec.type==='table' ? renderTableEditor(sec,i) : ''}
+      ${sec.type==='text'  ? renderTextEditor(sec,i)  : ''}
+    </div>
+  </div>`;
+}
+
+function renderListEditor(sec,i) {
+  return `
+    <input type="text" value="${e(sec.requiresNote||'')}" oninput="updateSec(${i},'requiresNote',this.value)"
+      placeholder="Optional note e.g. Requires 1 Alchemy" style="width:100%;margin-bottom:8px">
+    <div id="sec-items-${i}">
+      ${(sec.items||[]).map((item,j)=>`
+        <div class="list-item-row">
+          <input type="text" value="${e(item)}" oninput="updateSecItem(${i},${j},this.value)" placeholder="* x1 {{Item|BrightRose}} or [[Bat]] (Level 1)">
+          <button class="btn btn-red" onclick="removeSecItem(${i},${j})">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-ghost" onclick="addSecItem(${i})" style="font-size:12px;padding:6px 12px">+ Add Item</button>
+  `;
+}
+
+function renderTableEditor(sec,i) {
+  const headers = sec.headers||[];
+  const rows    = sec.rows||[];
+  return `
+    <p class="hint">Add column headers first, then add rows.</p>
+    <div class="table-headers" id="tbl-hdrs-${i}">
+      ${headers.map((h,j)=>`
+        <div class="hdr-item">
+          <input type="text" value="${e(h)}" oninput="updateTblHdr(${i},${j},this.value)" placeholder="Header">
+          <button class="btn btn-red" onclick="removeTblHdr(${i},${j})" style="padding:4px 6px;font-size:11px;min-height:28px">✕</button>
+        </div>`).join('')}
+      <button class="btn btn-ghost" onclick="addTblHdr(${i})" style="font-size:11px;padding:5px 10px;min-height:28px">+ Col</button>
+    </div>
+    <div id="tbl-rows-${i}">
+      ${rows.map((row,j)=>`
+        <div class="tbl-row-line">
+          ${headers.map((_,k)=>`<input type="text" value="${e(row[k]||'')}" oninput="updateTblCell(${i},${j},${k},this.value)" placeholder="${e(headers[k]||'Cell')}">`).join('')}
+          <button class="btn btn-red" onclick="removeTblRow(${i},${j})" style="padding:4px 6px;font-size:11px;min-height:28px;flex-shrink:0">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-ghost" onclick="addTblRow(${i})" style="font-size:12px;padding:6px 12px;margin-top:4px">+ Add Row</button>
+  `;
+}
+
+function renderTextEditor(sec,i) {
+  return `<textarea oninput="updateSec(${i},'content',this.value)" placeholder="Enter plain text content..." style="width:100%;min-height:70px">${e(sec.content||'')}</textarea>`;
+}
+
+// ─── Categories ───────────────────────────────
+function renderCategoriesSection() {
+  const cats = getState().categories || [];
+  return fsec('🏷️ CATEGORIES', `
+    <div id="categories-list">
+      ${cats.map((c,i)=>`
+        <div class="dyn-item">
+          <input type="text" value="${e(c)}" oninput="updateCat(${i},this.value)" placeholder="e.g. Consumables">
+          <button class="btn btn-red" onclick="removeCat(${i})">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-gold full-btn" onclick="addCat()">+ Add Category</button>
+  `);
+}
+
+// ─── Link words ───────────────────────────────
+function renderLinkWordsSection() {
+  const words = getState().linkWords || [];
+  return fsec('🔗 AUTO-LINK WORDS', `
+    <p class="hint">Words entered here are automatically turned into [[wiki links]] in the output.</p>
+    <div id="linkwords-list">
+      ${words.map((w,i)=>`
+        <div class="link-row">
+          <input type="text" value="${e(w)}" oninput="updateLink(${i},this.value)" placeholder="e.g. Brightleaf or Bat Eye">
+          <button class="btn btn-red" onclick="removeLink(${i})">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="btn btn-ghost full-btn" onclick="addLink()">+ Add Link Word</button>
+  `);
+}
+
+// ═══════════════════════════════════════════════
+//  BIND BASE FIELD LISTENERS
+// ═══════════════════════════════════════════════
+function bindBaseFields() {
+  const map = {
+    'f-name': 'name', 'f-image': 'image', 'f-description': 'description',
+    'f-obtained': 'obtained', 'f-buy': 'buy', 'f-sell': 'sell',
+    'f-pageDescription': 'pageDescription',
+    'f-level': 'level', 'f-hp': 'hp', 'f-xp': 'xp', 'f-gold': 'gold',
+    'f-speed': 'speed', 'f-damage': 'damage', 'f-respawn': 'respawn',
+    'f-found': 'found', 'f-date': 'date',
+    'f-attack': 'attack', 'f-strength': 'strength', 'f-defence': 'defence',
+    'f-merchant_price': 'merchant_price', 'f-tradeable': 'tradeable'
+  };
+  for (const [id, key] of Object.entries(map)) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', () => { getState()[key] = el.value; generateOutput(); });
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  STATE MUTATIONS
+// ═══════════════════════════════════════════════
+function addDrop(k)            { getState()[k].push({name:'',quantity:1,rarity:'Common'}); renderForm(); generateOutput(); }
+function updateDrop(k,i,f,v)   { getState()[k][i][f]=v; generateOutput(); }
+function removeDrop(k,i)       { getState()[k].splice(i,1); renderForm(); generateOutput(); }
+
+function addAlchemy()          { monsterState.alchemyDrops.push({name:'',level:1,quantity:1}); renderForm(); generateOutput(); }
+function updateAlchemy(i,f,v)  { monsterState.alchemyDrops[i][f]=v; generateOutput(); }
+function removeAlchemy(i)      { monsterState.alchemyDrops.splice(i,1); renderForm(); generateOutput(); }
+
+function addSection() {
+  getState().sections.push({title:'',type:'list',level:'2',items:[],headers:[],rows:[],content:'',requiresNote:''});
+  renderForm(); generateOutput();
+}
+function updateSec(i,f,v) { getState().sections[i][f]=v; if (f==='type') renderForm(); generateOutput(); }
+function removeSec(i)     { getState().sections.splice(i,1); renderForm(); generateOutput(); }
+
+function addSecItem(si)        { getState().sections[si].items.push(''); renderForm(); generateOutput(); }
+function updateSecItem(si,j,v) { getState().sections[si].items[j]=v; generateOutput(); }
+function removeSecItem(si,j)   { getState().sections[si].items.splice(j,1); renderForm(); generateOutput(); }
+
+function addTblHdr(si) { getState().sections[si].headers.push(''); getState().sections[si].rows.forEach(r=>r.push('')); renderForm(); generateOutput(); }
+function updateTblHdr(si,j,v) { getState().sections[si].headers[j]=v; generateOutput(); }
+function removeTblHdr(si,j)   { getState().sections[si].headers.splice(j,1); getState().sections[si].rows.forEach(r=>r.splice(j,1)); renderForm(); generateOutput(); }
+function addTblRow(si)        { getState().sections[si].rows.push(getState().sections[si].headers.map(()=>'')); renderForm(); generateOutput(); }
+function updateTblCell(si,ri,ci,v){ getState().sections[si].rows[ri][ci]=v; generateOutput(); }
+function removeTblRow(si,ri)  { getState().sections[si].rows.splice(ri,1); renderForm(); generateOutput(); }
+
+function addCat()       { getState().categories.push(''); renderForm(); generateOutput(); }
+function updateCat(i,v) { getState().categories[i]=v; generateOutput(); }
+function removeCat(i)   { getState().categories.splice(i,1); renderForm(); generateOutput(); }
+
+function addLink()       { getState().linkWords.push(''); renderForm(); generateOutput(); }
+function updateLink(i,v) { getState().linkWords[i]=v; generateOutput(); }
+function removeLink(i)   { getState().linkWords.splice(i,1); renderForm(); generateOutput(); }
+
+// Equipment-specific rows
+function addEquipDrop() {
+  equipmentState.droppedBy.push({name:'', level:''});
+  renderForm(); generateOutput();
+}
+function updateEquipDrop(i, f, v) {
+  equipmentState.droppedBy[i][f] = v;
+  generateOutput();
+}
+function removeEquipDrop(i) {
+  equipmentState.droppedBy.splice(i, 1);
+  renderForm(); generateOutput();
+}
+
+function addCraftRow() {
+  equipmentState.craftedRows.push({level:'', equipment:'', bars:'', xp:'', sells:''});
+  renderForm(); generateOutput();
+}
+function updateCraftRow(i, f, v) {
+  equipmentState.craftedRows[i][f] = v;
+  generateOutput();
+}
+function removeCraftRow(i) {
+  equipmentState.craftedRows.splice(i, 1);
+  renderForm(); generateOutput();
+}
+
+// ═══════════════════════════════════════════════
+//  OUTPUT GENERATION
+// ═══════════════════════════════════════════════
+function generateOutput() {
+  const s = getState();
+  const links = (s.linkWords || []).filter(w => w.trim());
+  let out = '';
+
+  if (currentTab === 'item') {
+    out += `{{#invoke: ItemBox|show\n`;
+    if (s.name)        out += `|name=${s.name}\n`;
+    if (s.image)       out += `|image=${s.image}\n`;
+    if (s.description) out += `|description=${s.description}\n`;
+    if (s.obtained)    out += `|obtained=${s.obtained}\n`;
+    if (s.buy)         out += `|buy=${s.buy}\n`;
+    if (s.sell)        out += `|sell=${s.sell}\n`;
+    out += `}}\n`;
+    if (s.pageDescription) out += `\n${wikiLink(s.pageDescription, links)}\n`;
+
+  } else if (currentTab === 'equipment') {
+    out += `{{#invoke: ItemBox|show\n`;
+    if (s.name)            out += `|name=${s.name}\n`;
+    if (s.image)           out += `|image=${s.image}\n`;
+    if (s.description)     out += `|description=${s.description}\n`;
+    if (s.obtained)        out += `|obtained=${s.obtained}\n`;
+    if (s.level)           out += `|level=${s.level}\n`;
+    if (s.attack)          out += `|attack=${s.attack}\n`;
+    if (s.strength)        out += `|strength=${s.strength}\n`;
+    if (s.defence)         out += `|defence=${s.defence}\n`;
+    if (s.hp)              out += `|HP=${s.hp}\n`;
+    if (s.merchant_price)  out += `|merchant_price=${s.merchant_price}\n`;
+    if (s.tradeable)       out += `|tradeable=${s.tradeable}\n`;
+    out += `}}\n`;
+
+    if (s.pageDescription) out += `\n${wikiLink(s.pageDescription, links)}\n`;
+
+    const drops = (s.droppedBy || []).filter(d => d.name);
+    if (drops.length) {
+      out += `\n== Dropped by ==\n`;
+      drops.forEach(d => {
+        const lvl = d.level ? ` (level ${d.level})` : '';
+        out += `* ${wikiLink(d.name, links)}${lvl}\n`;
+      });
+    }
+
+    const craft = (s.craftedRows || []).filter(r => r.level || r.equipment || r.bars || r.xp || r.sells);
+    if (craft.length) {
+      out += `\n== Crafted with ==\n`;
+      out += `{| class="wikitable"\n! Level !! Equipment !! Bars required !! XP for forging !! Sells for\n`;
+      craft.forEach(r => {
+        out += `|-\n| ${wikiLink(r.level || '', links)} || ${wikiLink(r.equipment || '', links)} || ${wikiLink(r.bars || '', links)} || ${wikiLink(r.xp || '', links)} || ${wikiLink(r.sells || '', links)}\n`;
+      });
+      out += `|}\n`;
+    }
+
+  } else {
+    out += `{{#invoke: MonsterBox|show\n`;
+    if (s.name)    out += `|name=${s.name}\n`;
+    if (s.image)   out += `|image=${s.image}\n`;
+    if (s.level)   out += `|level=${s.level}\n`;
+    if (s.hp)      out += `|hp=${s.hp}\n`;
+    if (s.xp)      out += `|xp=${s.xp}\n`;
+    if (s.gold)    out += `|gold=${s.gold}\n`;
+    if (s.speed)   out += `|speed=${s.speed}\n`;
+    if (s.damage)  out += `|damage=${s.damage}\n`;
+    if (s.respawn) out += `|respawn=${s.respawn}\n`;
+    if (s.found)   out += `|found=${wikiLink(s.found, links)}\n`;
+    if (s.date)    out += `|date=${s.date}\n`;
+    out += `}}\n`;
+    if (s.pageDescription) out += `\n${wikiLink(s.pageDescription, links)}\n`;
+
+    const drops = (s.drops || []).filter(d => d.name);
+    if (drops.length) {
+      out += `\n= Drop Table =\n{{DropsStart}}\n`;
+      drops.forEach(d => { out += `{{Drop|Name=${d.name}|Quantity=${d.quantity||1}|Rarity=${d.rarity||'Common'}}}\n`; });
+      out += `{{DropsEnd}}\n`;
+    }
+
+    const alch = (s.alchemyDrops || []).filter(d => d.name);
+    if (alch.length) {
+      out += `\n== Alchemy drop table ==\nDrops after reaching the required Alchemy level.\n`;
+      out += `{| class="wikitable"\n|-\n! Item!! Alchemy level !! Quantity \n`;
+      alch.forEach(d => { out += `|-\n| {{#invoke: Item|show|name=${d.name}}} || ${d.level||1} || ${d.quantity||1}\n`; });
+      out += `|}\n`;
+    }
+
+    const tert = (s.tertiaryDrops || []).filter(d => d.name);
+    if (tert.length) {
+      out += `\n= Tertiary Drop =\nThis can be obtained as an extra item roll rarely from all monsters. They will only drop if the monster is near your level (bosses not included)\n\n{{DropsStart}}\n`;
+      tert.forEach(d => { out += `{{Drop|Name=${d.name}|Quantity=${d.quantity||1}|Rarity=${d.rarity||'Rare'}}}\n`; });
+      out += `{{DropsEnd}}\n`;
+    }
+  }
+
+  for (const sec of (s.sections || [])) {
+    out += `\n${hdr(sec.level || '2', sec.title || 'Section')}\n`;
+    if (sec.type === 'list') {
+      if (sec.requiresNote) out += `*${sec.requiresNote}\n`;
+      (sec.items || []).filter(x => x).forEach(item => { out += `${wikiLink(item, links)}\n`; });
+    } else if (sec.type === 'table') {
+      const hdrs = sec.headers || [], rows = sec.rows || [];
+      if (hdrs.length || rows.length) {
+        out += `{| class="wikitable"\n|-\n`;
+        if (hdrs.length) out += `! ${hdrs.join('!! ')}\n`;
+        rows.forEach(row => { out += `|-\n| ${row.map(c => wikiLink(c || '', links)).join(' || ')}\n`; });
+        out += `|}\n`;
+      }
+    } else if (sec.type === 'text') {
+      if (sec.content) out += `${wikiLink(sec.content, links)}\n`;
+    }
+  }
+
+  const cats = (s.categories || []).filter(c => c);
+  if (cats.length) {
+    out += `\n`;
+    cats.forEach(c => { out += `[[Category:${c}]]\n`; });
+  }
+
+  document.getElementById('output-code').textContent = out || '<!-- Fill in the form to generate wiki code here -->';
+}
+
+// ═══════════════════════════════════════════════
+//  COPY
+// ═══════════════════════════════════════════════
+function copyCode() {
+  const code = document.getElementById('output-code').textContent;
+  if (code.startsWith('<!--')) return;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = document.getElementById('copy-btn');
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+
+// ═══════════════════════════════════════════════
+//  IMPORT PARSERS
+// ═══════════════════════════════════════════════
+function parseSections(wikiText) {
+  const sections = [];
+  const clean = wikiText.replace(/\{\{#invoke:[\s\S]*?\}\}/, '');
+  const regex = /(={1,6})\s*(.*?)\s*\1([\s\S]*?)(?=\n={1,6}\s*.*?\1|\s*$)/g;
+  let match;
+  while ((match = regex.exec(clean)) !== null) {
+    sections.push(parseSectionContent(match[2].trim(), String(match[1].length), match[3].trim()));
+  }
+  return sections.filter(s => s.title);
+}
+function parseSectionContent(title, level, content) {
+  if (content.includes('{|')) return parseTableSection(title, level, content);
+  if (/^\s*\*/m.test(content)) return parseListSection(title, level, content);
+  return {title, level, type:'text', content:content.trim()};
+}
+function parseListSection(title, level, content) {
+  return {
+    title, level, type:'list',
+    items: content.split('\n').filter(l=>l.trim().startsWith('*')).map(l=>l.trim()),
+    requiresNote:''
+  };
+}
+function parseTableSection(title, level, content) {
+  const headers=[], rows=[];
+  const lines=content.split('\n');
+  for(let line of lines){
+    line=line.trim();
+    if(line.startsWith('!')) headers.push(...line.replace(/^!/,'').split('!!').map(h=>h.trim()));
+    if(line.startsWith('|') && !line.startsWith('|-') && !line.startsWith('|}')){
+      rows.push(line.replace(/^\|/,'').split('||').map(c=>c.trim()));
+    }
+  }
+  return {title, level, type:'table', headers, rows};
+}
+
+
+function importWikiCode(text){
+  const state=getState();
+  state.sections=parseSections(text);
+  renderForm();
+  generateOutput();
+}
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+renderForm();
+generateOutput();
+</script>
+</body>
+</html>
